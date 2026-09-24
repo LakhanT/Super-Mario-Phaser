@@ -11,10 +11,10 @@ function applyCrispPixelArt() {
 
 function placeLevelBackdropSize(backdrop, underground) {
     if (underground) {
-        backdrop.setDisplaySize(screenWidth * 1.12, screenHeight * 1.28);
+        backdrop.setDisplaySize(screenWidth * 1.35, screenHeight * 1.45);
         backdrop.y = screenHeight * 0.46;
     } else {
-        backdrop.setDisplaySize(screenWidth * 1.12, screenHeight * 1.08);
+        backdrop.setDisplaySize(screenWidth * 1.35, screenHeight * 1.35);
         backdrop.y = screenHeight * 0.5;
     }
 }

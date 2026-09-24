@@ -9,7 +9,7 @@ body {
   zoom: 100%;
   max-zoom: 100%;
   min-zoom: 100%;
-  background: #2f6fd6;
+  background: #5c94fc;
   margin: 0px;
   padding: 0px;
   overflow: hidden;
@@ -19,14 +19,15 @@ body {
   font-family: pixel_nums;
 }
 #game {
+  position: fixed;
+  inset: 0;
   margin: 0px;
   padding: 0px;
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
+  background: #5c94fc;
   font-family: pixel_nums;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 #gif {
   height: 30%;

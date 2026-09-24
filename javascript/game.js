@@ -18,7 +18,7 @@ var config = {
     parent: 'game',
     preserveDrawingBuffer: true,
     scale: {
-        mode: Phaser.Scale.FIT,
+        mode: Phaser.Scale.ENVELOP,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width: screenWidth,
         height: screenHeight
@@ -43,6 +43,9 @@ var config = {
     },
     version: '0.7.3'
 };
+
+const playZoom = 2.2;
+const groundStrip = 80;
 
 const worldWidth = screenWidth * 11;
 const platformHeight = screenHeight / 5;
@@ -434,6 +437,9 @@ function create() {
     this.cameras.main.setZoom(1);
     this.cameras.main.scrollY = 0;
     this.cameras.main.isFollowing = false;
+    this.hudCamera = this.cameras.add(0, 0, screenWidth, screenHeight);
+    this.hudCamera.setZoom(1);
+    this.hudCamera.setScroll(0, 0);
     //this.cameras.main.followOffset.set(startOffset / 6, 0);
 
     initSounds.call(this);
@@ -615,8 +621,6 @@ function generateLevel() {
             Npiece.isPlatform = true;
             Npiece.depth = 2;
             this.platformGroup.add(Npiece);
-            // Apply player collision with platform
-            this.physics.add.collider(player, Npiece);
 
             //> Creating world structures
 
@@ -690,8 +694,8 @@ function generateLevel() {
         misteryBlocks[i].body.immovable = true;
         misteryBlocks[i].depth = 2;
         misteryBlocks[i].anims.play('mistery-block-default', true);
-        this.physics.add.collider(player, misteryBlocks[i], revealHiddenBlock, null, this);
     }
+    this.physics.add.collider(player, this.misteryBlocksGroup, revealHiddenBlock, null, this);
     
     // Apply player collision with blocks
     let blocks = this.blocksGroup.getChildren();
@@ -700,8 +704,9 @@ function generateLevel() {
         blocks[i].body.allowGravity = false;
         blocks[i].body.immovable = true;
         blocks[i].depth = 2;
-        this.physics.add.collider(player, blocks[i], destroyBlock, null, this);
     }
+    this.physics.add.collider(player, this.blocksGroup, destroyBlock, null, this);
+    this.physics.add.collider(player, this.platformGroup);
 
     // Apply player collision with immovable blocks
     let constructionBlocks = this.constructionBlocksGroup.getChildren();
@@ -711,8 +716,8 @@ function generateLevel() {
         constructionBlocks[i].body.allowGravity = false;
         constructionBlocks[i].body.immovable = true;
         constructionBlocks[i].depth = 2;
-        this.physics.add.collider(player, constructionBlocks[i], destroyBlock, null, this);
     }
+    this.physics.add.collider(player, this.constructionBlocksGroup, destroyBlock, null, this);
 
     // Apply player collision with immovable blocks
     let immovableBlocks = this.immovableBlocksGroup.getChildren();
@@ -721,8 +726,8 @@ function generateLevel() {
         immovableBlocks[i].body.allowGravity = false;
         immovableBlocks[i].body.immovable = true;
         immovableBlocks[i].depth = 2;
-        this.physics.add.collider(player, immovableBlocks[i]);
     }
+    this.physics.add.collider(player, this.immovableBlocksGroup);
 
     let groundCoins = this.groundCoinsGroup.getChildren();
     for (let i = 0; i < groundCoins.length; i++) {
@@ -731,8 +736,8 @@ function generateLevel() {
         groundCoins[i].body.allowGravity = false;
         groundCoins[i].body.immovable = true;
         groundCoins[i].depth = 2;
-        this.physics.add.overlap(player, groundCoins[i], collectCoin, null, this);
     }
+    this.physics.add.overlap(player, this.groundCoinsGroup, collectCoin, null, this);
 }
 
 function startLevel(player, trigger) {
@@ -764,7 +769,10 @@ function startLevel(player, trigger) {
         }
 
         player.x = screenWidth * 1.1;
+        this.cameras.main.setZoom(playZoom);
+        lockPlayCamera(this.cameras.main);
         this.cameras.main.pan(screenWidth * 1.5, 0, 0);
+        lockPlayCamera(this.cameras.main);
         playerBlocked = false;
         this.cameras.main.fadeIn(500, 0, 0, 0);
         createHUD.call(this);
@@ -1049,13 +1057,62 @@ function padButton(pad, index) {
     return !!(pad && pad.buttons && pad.buttons[index] && pad.buttons[index].pressed);
 }
 
-function update(delta) {
+function lockPlayCamera(camera) {
+    var viewH = screenHeight / playZoom;
+    var groundTop = screenHeight - platformHeight;
+    camera.scrollY = groundTop + groundStrip - viewH;
+}
+
+function syncCameraLayers(scene) {
+    var hud = scene.hudCamera;
+    if (!hud) return;
+    var list = scene.children.list;
+    var main = scene.cameras.main;
+    for (var i = 0; i < list.length; i++) {
+        var obj = list[i];
+        if (!obj || obj.__camLayer) continue;
+        var onHud = obj.scrollFactorX === 0 && obj.depth >= 0;
+        if (onHud) main.ignore(obj);
+        else hud.ignore(obj);
+        obj.__camLayer = true;
+    }
+}
+
+function cullDistantBodies(scene) {
+    if (!levelStarted) return;
+    var view = scene.cameras.main.worldView;
+    var left = view.x - 1000;
+    var right = view.right + 1000;
+    var groups = [scene.platformGroup, scene.blocksGroup, scene.misteryBlocksGroup, scene.immovableBlocksGroup, scene.constructionBlocksGroup, scene.goombasGroup, scene.groundCoinsGroup];
+    for (var g = 0; g < groups.length; g++) {
+        var group = groups[g];
+        if (!group) continue;
+        var kids = group.getChildren();
+        for (var i = 0; i < kids.length; i++) {
+            var obj = kids[i];
+            if (!obj || !obj.body) continue;
+            if (group === scene.goombasGroup && obj.y > screenHeight + 400) {
+                obj.destroy();
+                continue;
+            }
+            var near = obj.x > left && obj.x < right;
+            if (obj.body.enable !== near) obj.body.enable = near;
+        }
+    }
+}
+
+function update(time, delta) {
     syncInputState.call(this);
+    syncCameraLayers(this);
     updateLevelVisuals.call(this);
 
     if (gameOver || gameWinned) return;
 
     updatePlayer.call(this, delta);
+    if (levelStarted) {
+        lockPlayCamera(this.cameras.main);
+        cullDistantBodies(this);
+    }
 
     const playerVelocityX = player.body.velocity.x;
     const camera = this.cameras.main;
@@ -1065,11 +1122,12 @@ function update(delta) {
         camera.startFollow(player, true, 0.12, 0);
         camera.setFollowOffset(0, 0);
         camera.isFollowing = true;
+        lockPlayCamera(camera);
     }
 
     if (playerVelocityX < 0 && furthestPlayerPos < player.x && levelStarted && !reachedLevelEnd && camera.isFollowing) {
         furthestPlayerPos = player.x;
-        const worldBounds = this.physics.world.setBounds(camera.worldView.x, 0, worldWidth, screenHeight);
+        this.physics.world.setBounds(camera.worldView.x, 0, worldWidth, screenHeight);
         camera.setBounds(camera.worldView.x, 0, worldWidth, screenHeight);
         camera.stopFollow();
         camera.isFollowing = false;

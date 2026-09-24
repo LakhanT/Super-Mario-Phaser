@@ -84,11 +84,14 @@ function updatePlayer(delta) {
                 alpha: 0
             });
         }
-        setTimeout(() => {
-            gameWinned = true;
-            player.destroy();
-            winScreen.call(this);
-        }, 5000);
+        if (!this.winQueued) {
+            this.winQueued = true;
+            setTimeout(() => {
+                gameWinned = true;
+                player.destroy();
+                winScreen.call(this);
+            }, 5000);
+        }
         return;
     }
 
