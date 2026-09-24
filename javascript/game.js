@@ -2,9 +2,8 @@ const loadingGif = document.querySelectorAll('.loading-gif');
 
 const mobileDevice = isMobileDevice();
 
-const screenWidth = window.innerWidth;
-const screenHeight = window.innerHeight;
-const playZoom = 1.85;
+const screenWidth = 1920;
+const screenHeight = 1080;
 
 const velocityX = screenWidth / 4.5;
 const velocityY = screenHeight / 1.15;
@@ -18,6 +17,12 @@ var config = {
     backgroundColor: 0x5c94fc,
     parent: 'game',
     preserveDrawingBuffer: true,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: screenWidth,
+        height: screenHeight
+    },
     antialias: true,
     roundPixels: true,
     input: {
@@ -426,8 +431,8 @@ function create() {
 
     // Create camera
     this.cameras.main.setBounds(0, 0, worldWidth, screenHeight);
-    this.cameras.main.setZoom(playZoom);
-    this.cameras.main.scrollY = screenHeight * (1 - 1 / playZoom);
+    this.cameras.main.setZoom(1);
+    this.cameras.main.scrollY = 0;
     this.cameras.main.isFollowing = false;
     //this.cameras.main.followOffset.set(startOffset / 6, 0);
 
@@ -853,7 +858,7 @@ function drawStartScreen() {
 
     this.add.image(screenWidth / 50, screenHeight / 3, 'cloud1').setScale(screenHeight / 1725);
 
-    this.add.image(screenWidth / 25, screenHeight * (1 - 1 / playZoom) + screenHeight * 0.04, 'sign').setOrigin(0).setScale(screenHeight / 350);
+    this.add.image(screenWidth / 25, screenHeight / 10, 'sign').setOrigin(0).setScale(screenHeight / 350);
 
     let propsY = screenHeight - platformHeight;
 
@@ -1057,8 +1062,8 @@ function update(delta) {
 
     if (playerVelocityX > 0 && levelStarted && !reachedLevelEnd && !camera.isFollowing &&
         player.x >= screenWidth * 1.5 && player.x >= (camera.worldView.x + camera.width / 2)) {
-        camera.startFollow(player, true, 0.12, 0.08);
-        camera.setFollowOffset(0, screenHeight * 0.16);
+        camera.startFollow(player, true, 0.12, 0);
+        camera.setFollowOffset(0, 0);
         camera.isFollowing = true;
     }
 
