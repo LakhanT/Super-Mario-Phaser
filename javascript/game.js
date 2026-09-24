@@ -3,7 +3,8 @@ const loadingGif = document.querySelectorAll('.loading-gif');
 const mobileDevice = isMobileDevice();
 
 const screenWidth = window.innerWidth;
-const screenHeight = window.innerHeight * 1.1;
+const screenHeight = window.innerHeight;
+const playZoom = 1.85;
 
 const velocityX = screenWidth / 4.5;
 const velocityY = screenHeight / 1.15;
@@ -19,6 +20,9 @@ var config = {
     preserveDrawingBuffer: true,
     antialias: true,
     roundPixels: true,
+    input: {
+        gamepad: true
+    },
     physics: {
         default: 'arcade',
         arcade: {
@@ -422,6 +426,8 @@ function create() {
 
     // Create camera
     this.cameras.main.setBounds(0, 0, worldWidth, screenHeight);
+    this.cameras.main.setZoom(playZoom);
+    this.cameras.main.scrollY = screenHeight * (1 - 1 / playZoom);
     this.cameras.main.isFollowing = false;
     //this.cameras.main.followOffset.set(startOffset / 6, 0);
 
@@ -454,6 +460,20 @@ function createControls() {
       controlKeys[keyName] = this.input.keyboard.addKey(keyCode);
     });
 
+    this.arrowKeys = this.input.keyboard.addKeys({
+        up: Phaser.Input.Keyboard.KeyCodes.UP,
+        down: Phaser.Input.Keyboard.KeyCodes.DOWN,
+        left: Phaser.Input.Keyboard.KeyCodes.LEFT,
+        right: Phaser.Input.Keyboard.KeyCodes.RIGHT
+    });
+    this.input.keyboard.addCapture([
+        Phaser.Input.Keyboard.KeyCodes.UP,
+        Phaser.Input.Keyboard.KeyCodes.DOWN,
+        Phaser.Input.Keyboard.KeyCodes.LEFT,
+        Phaser.Input.Keyboard.KeyCodes.RIGHT,
+        Phaser.Input.Keyboard.KeyCodes.SPACE
+    ]);
+
     /*
     controlKeys.PAUSE.on('down', function () {
         if (!this.settingsMenuOpen)
@@ -465,22 +485,19 @@ function createControls() {
 
 // This will generate a random coordinate, that can't be within a hole
 
-function generateRandomCoordinate(entitie = false, ground = true) {
+function generateRandomCoordinate(entitie = false, ground = true, attempts) {
     const startPos = entitie ? screenWidth * 1.5 : screenWidth;
     const endPos = entitie ? worldWidth - screenWidth * 3 : worldWidth;
-  
-    let coordinate = Phaser.Math.Between(startPos, endPos);
-  
-    if (!ground) return coordinate;
-  
+    let coordinate = Phaser.Math.Between(startPos, Math.max(startPos + 1, endPos));
+    if (!ground || attempts > 12) return coordinate;
+
     for (let hole of worldHolesCoords) {
       if (coordinate >= hole.start - platformPiecesWidth * 1.5 && coordinate <= hole.end) {
-        return generateRandomCoordinate.call(this, entitie, ground);
+        return generateRandomCoordinate.call(this, entitie, ground, (attempts || 0) + 1);
       }
     }
-  
     return coordinate;
-  }
+}
   
 
 // World generation
@@ -836,7 +853,7 @@ function drawStartScreen() {
 
     this.add.image(screenWidth / 50, screenHeight / 3, 'cloud1').setScale(screenHeight / 1725);
 
-    this.add.image(screenWidth / 25, screenHeight / 10, 'sign').setOrigin(0).setScale(screenHeight / 350);
+    this.add.image(screenWidth / 25, screenHeight * (1 - 1 / playZoom) + screenHeight * 0.04, 'sign').setOrigin(0).setScale(screenHeight / 350);
 
     let propsY = screenHeight - platformHeight;
 
@@ -986,19 +1003,45 @@ function syncInputState() {
         pollInput(this);
         return;
     }
-    var jump = !!(controlKeys.JUMP && controlKeys.JUMP.isDown);
-    var fire = !!(controlKeys.FIRE && controlKeys.FIRE.isDown);
-    var pause = !!(controlKeys.PAUSE && controlKeys.PAUSE.isDown);
+    var arrows = this.arrowKeys || {};
+    var pad = activeGamepad(this);
+    var axisX = padAxis(pad, 0);
+    var axisY = padAxis(pad, 1);
+    var jump = !!(controlKeys.JUMP && controlKeys.JUMP.isDown) || !!(arrows.up && arrows.up.isDown) || padButton(pad, 0) || padButton(pad, 12);
+    var fire = !!(controlKeys.FIRE && controlKeys.FIRE.isDown) || padButton(pad, 1) || padButton(pad, 2) || padButton(pad, 7);
+    var pause = !!(controlKeys.PAUSE && controlKeys.PAUSE.isDown) || padButton(pad, 9);
     var stick = this.joyStick;
     inputState.jumpPressed = jump && !inputState.jump;
     inputState.firePressed = fire && !inputState.fire;
     inputState.pausePressed = pause && !inputState.pause;
-    inputState.left = !!(controlKeys.LEFT && controlKeys.LEFT.isDown) || !!(stick && stick.left);
-    inputState.right = !!(controlKeys.RIGHT && controlKeys.RIGHT.isDown) || !!(stick && stick.right);
+    inputState.left = !!(controlKeys.LEFT && controlKeys.LEFT.isDown) || !!(arrows.left && arrows.left.isDown) || !!(stick && stick.left) || axisX < -0.28 || padButton(pad, 14);
+    inputState.right = !!(controlKeys.RIGHT && controlKeys.RIGHT.isDown) || !!(arrows.right && arrows.right.isDown) || !!(stick && stick.right) || axisX > 0.28 || padButton(pad, 15);
     inputState.jump = jump || !!(stick && stick.up);
-    inputState.crouch = !!(controlKeys.DOWN && controlKeys.DOWN.isDown) || !!(stick && stick.down);
+    inputState.crouch = !!(controlKeys.DOWN && controlKeys.DOWN.isDown) || !!(arrows.down && arrows.down.isDown) || !!(stick && stick.down) || axisY > 0.5 || padButton(pad, 13);
     inputState.fire = fire;
     inputState.pause = pause;
+}
+
+function activeGamepad(scene) {
+    var plugin = scene.input && scene.input.gamepad;
+    if (!plugin) return null;
+    var pads = plugin.gamepads || [];
+    for (var i = 0; i < pads.length; i++) {
+        if (pads[i] && pads[i].connected) return pads[i];
+    }
+    return plugin.pad1 && plugin.pad1.connected ? plugin.pad1 : null;
+}
+
+function padAxis(pad, index) {
+    if (!pad || !pad.axes || pad.axes[index] == null) return 0;
+    var axis = pad.axes[index];
+    if (typeof axis === 'number') return axis;
+    if (typeof axis.getValue === 'function') return axis.getValue();
+    return 0;
+}
+
+function padButton(pad, index) {
+    return !!(pad && pad.buttons && pad.buttons[index] && pad.buttons[index].pressed);
 }
 
 function update(delta) {
@@ -1014,7 +1057,8 @@ function update(delta) {
 
     if (playerVelocityX > 0 && levelStarted && !reachedLevelEnd && !camera.isFollowing &&
         player.x >= screenWidth * 1.5 && player.x >= (camera.worldView.x + camera.width / 2)) {
-        camera.startFollow(player, true, 0.1, 0.05);
+        camera.startFollow(player, true, 0.12, 0.08);
+        camera.setFollowOffset(0, screenHeight * 0.16);
         camera.isFollowing = true;
     }
 

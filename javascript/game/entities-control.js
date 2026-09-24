@@ -17,24 +17,17 @@ function createGoombas() {
         }
         goomba.setMaxVelocity(goombasVelocityX, levelGravity)
         this.goombasGroup.add(goomba);
-        let platformPieces = this.platformGroup.getChildren();
-        this.physics.add.collider(goomba, platformPieces);
-        let blocks = this.blocksGroup.getChildren();
-        this.physics.add.collider(goomba, blocks);
-        let misteryBlocks = this.misteryBlocksGroup.getChildren();
-        this.physics.add.collider(goomba, misteryBlocks);
-        let goombas = this.goombasGroup.getChildren();
-        this.physics.add.collider(goomba, goombas);
-        this.physics.add.collider(goomba, this.finalFlagMast);
-        this.physics.add.overlap(player, goomba, checkGoombaCollision, null, this);
     }
 
-    // Create collision with fall protections to stop goombas from falling off the map
-    this.physics.add.collider(this.goombasGroup.getChildren(), this.immovableBlocksGroup.getChildren());
-    this.physics.add.collider(this.goombasGroup.getChildren(), this.fallProtectionGroup.getChildren());
-    this.physics.add.collider(this.goombasGroup.getChildren(), this.finalTrigger);
-
-    setInterval(clearGoombas.call(this), 250);
+    this.physics.add.collider(this.goombasGroup, this.platformGroup);
+    this.physics.add.collider(this.goombasGroup, this.blocksGroup);
+    this.physics.add.collider(this.goombasGroup, this.misteryBlocksGroup);
+    this.physics.add.collider(this.goombasGroup, this.goombasGroup);
+    this.physics.add.collider(this.goombasGroup, this.finalFlagMast);
+    this.physics.add.overlap(player, this.goombasGroup, checkGoombaCollision, null, this);
+    this.physics.add.collider(this.goombasGroup, this.immovableBlocksGroup);
+    this.physics.add.collider(this.goombasGroup, this.fallProtectionGroup);
+    if (this.finalTrigger) this.physics.add.collider(this.goombasGroup, this.finalTrigger);
 }
 
 function checkGoombaCollision(player, goomba) {
