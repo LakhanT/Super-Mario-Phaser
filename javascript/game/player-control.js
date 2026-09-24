@@ -98,7 +98,9 @@ function updatePlayer(delta) {
     if (player.body.blocked.up)
         player.setVelocityY(0);
 
-    if (player.body.blocked.left || player.body.blocked.right)
+    if (player.body.blocked.left && player.body.velocity.x < 0)
+        player.setVelocityX(0);
+    if (player.body.blocked.right && player.body.velocity.x > 0)
         player.setVelocityX(0);
 
     // Check if player has fallen

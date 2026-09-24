@@ -18,7 +18,7 @@ var config = {
     parent: 'game',
     preserveDrawingBuffer: true,
     scale: {
-        mode: Phaser.Scale.ENVELOP,
+        mode: Phaser.Scale.NONE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         width: screenWidth,
         height: screenHeight
@@ -44,8 +44,8 @@ var config = {
     version: '0.7.3'
 };
 
-const playZoom = 2.2;
-const groundStrip = 80;
+const playZoom = 2.5;
+const groundStrip = 120;
 
 const worldWidth = screenWidth * 11;
 const platformHeight = screenHeight / 5;
@@ -440,6 +440,8 @@ function create() {
     this.hudCamera = this.cameras.add(0, 0, screenWidth, screenHeight);
     this.hudCamera.setZoom(1);
     this.hudCamera.setScroll(0, 0);
+    this.hudCamera.transparent = true;
+    this.cameras.main.roundPixels = false;
     //this.cameras.main.followOffset.set(startOffset / 6, 0);
 
     initSounds.call(this);
@@ -770,8 +772,9 @@ function startLevel(player, trigger) {
 
         player.x = screenWidth * 1.1;
         this.cameras.main.setZoom(playZoom);
-        lockPlayCamera(this.cameras.main);
-        this.cameras.main.pan(screenWidth * 1.5, 0, 0);
+        this.cameras.main.startFollow(player, true, 0.18, 0);
+        this.cameras.main.setFollowOffset(260, 0);
+        this.cameras.main.isFollowing = true;
         lockPlayCamera(this.cameras.main);
         playerBlocked = false;
         this.cameras.main.fadeIn(500, 0, 0, 0);
@@ -1078,29 +1081,6 @@ function syncCameraLayers(scene) {
     }
 }
 
-function cullDistantBodies(scene) {
-    if (!levelStarted) return;
-    var view = scene.cameras.main.worldView;
-    var left = view.x - 1000;
-    var right = view.right + 1000;
-    var groups = [scene.platformGroup, scene.blocksGroup, scene.misteryBlocksGroup, scene.immovableBlocksGroup, scene.constructionBlocksGroup, scene.goombasGroup, scene.groundCoinsGroup];
-    for (var g = 0; g < groups.length; g++) {
-        var group = groups[g];
-        if (!group) continue;
-        var kids = group.getChildren();
-        for (var i = 0; i < kids.length; i++) {
-            var obj = kids[i];
-            if (!obj || !obj.body) continue;
-            if (group === scene.goombasGroup && obj.y > screenHeight + 400) {
-                obj.destroy();
-                continue;
-            }
-            var near = obj.x > left && obj.x < right;
-            if (obj.body.enable !== near) obj.body.enable = near;
-        }
-    }
-}
-
 function update(time, delta) {
     syncInputState.call(this);
     syncCameraLayers(this);
@@ -1109,18 +1089,15 @@ function update(time, delta) {
     if (gameOver || gameWinned) return;
 
     updatePlayer.call(this, delta);
-    if (levelStarted) {
-        lockPlayCamera(this.cameras.main);
-        cullDistantBodies(this);
-    }
+    if (levelStarted) lockPlayCamera(this.cameras.main);
 
     const playerVelocityX = player.body.velocity.x;
     const camera = this.cameras.main;
+    const viewMid = camera.worldView.x + camera.worldView.width * 0.45;
 
-    if (playerVelocityX > 0 && levelStarted && !reachedLevelEnd && !camera.isFollowing &&
-        player.x >= screenWidth * 1.5 && player.x >= (camera.worldView.x + camera.width / 2)) {
-        camera.startFollow(player, true, 0.12, 0);
-        camera.setFollowOffset(0, 0);
+    if (playerVelocityX > 0 && levelStarted && !reachedLevelEnd && !camera.isFollowing && player.x >= viewMid) {
+        camera.startFollow(player, true, 0.18, 0);
+        camera.setFollowOffset(260, 0);
         camera.isFollowing = true;
         lockPlayCamera(camera);
     }

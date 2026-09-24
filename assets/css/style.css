@@ -29,6 +29,11 @@ body {
   background: #5c94fc;
   font-family: pixel_nums;
 }
+#game canvas {
+  width: 100vw !important;
+  height: 100vh !important;
+  display: block;
+}
 #gif {
   height: 30%;
   position: absolute;
