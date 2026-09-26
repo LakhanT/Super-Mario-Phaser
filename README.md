@@ -1,44 +1,23 @@
+# Super Mario
 
-# **Super Mario Phaser**
+A browser Super Mario game with keyboard and Xbox controls.
 
-Super Mario Phaser is a recreation of the classic Super Mario Bros game using the Phaser framework. This project aims to bring the nostalgic experience of playing the iconic platformer to modern web browsers. One exciting feature of this game is the random level generation, which ensures that each playthrough offers a unique and challenging experience.
+## Play
 
+Open the deployed site, or run it locally:
 
-## **Table of Contents**
+```
+npm install
+npm start
+```
 
-- [Demo](#Demo)
-- [Controls](#Controls)
-- [Contributing](#Contributing)
-- [License](#License)
+Then open http://localhost:5000 and press Ctrl+F5.
 
-### Demo
+## Controls
 
-A live demo of the game can be accessed at [https://decapapi.github.io/Super-Mario-Phaser/](https://decapapi.github.io/Super-Mario-Phaser/).
+- Move: arrow keys, A/D, left stick, or D-pad
+- Jump: Space, Up, or Xbox A
+- Run and throw fire: Shift or Xbox B
+- Crouch: Down
 
-Some screenshots of the game:
-
-![Level Gameplay](assets/showcase/level-gameplay.gif)
-
-![Level Start](assets/showcase/level-start.gif)
-
-![Level End](assets/showcase/level-end.gif)
-
-![Settings Screen](assets/showcase/settings-screen.png)
-
-### Controls
-
-Controls are fully customizable, however default controls are:
-
-**Jump:** SPACE
-
-**Move Left:** A
-
-**Move Right:** D
-
-**Crouch:** S
-
-**Fire:** Q
-
-### Contributing
-
-Contributions are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request. Make sure to adhere to the existing code style and follow the established guidelines.
+The red mushroom makes Mario big. Hit a power-up block again while big to get a fire flower. The green mushroom is a 1-Up and also grows small Mario. A kicked Koopa shell defeats Goombas. Small Mario bumps bricks. Big Mario breaks empty bricks.
